@@ -25,7 +25,6 @@ dependencies {
         "spring-boot-starter-jdbc",
         "spring-boot-starter-data-jpa"
     )
-    compile(files("C:/Users/Aleksandr.Tsarev/.m2/repository/com/oracle/ojdbc7/12.1.0.2/ojdbc7-12.1.0.2.jar"))
     compile("org.jetbrains.kotlin", "kotlin-reflect", "1.3.31")
     compile("io.springfox", "springfox-swagger2", "2.9.2")
     testCompile("junit", "junit", "4.12")
