@@ -1,42 +1,69 @@
 package com.tsarev.protospring.proto1.domain
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.tsarev.protospring.proto1.core.ProxyBase
 import com.tsarev.protospring.proto1.core.ProxyBasedPojoTuplizer
-import org.hibernate.annotations.Generated
 import org.hibernate.annotations.Tuplizer
 import org.springframework.data.repository.CrudRepository
 import org.springframework.web.bind.annotation.*
 import java.util.*
-import javax.persistence.Column
-import javax.persistence.Entity
-import javax.persistence.Id
-import javax.persistence.Table
+import javax.persistence.*
 
-@Entity
-@Table(name = "TEST")
+@MappedSuperclass
 @Tuplizer(impl = ProxyBasedPojoTuplizer::class)
-interface Ent {
+interface IdAble : ProxyBase {
 
-    @get:Id
-    @get:Column(name = "ID")
+    @get:Id @get:Column(name = "ID")
     var id: Long
 
-    @get:Column(name = "DATA")
-    var data: String
+}
 
-    @get:JsonProperty("some")
-    @get:Column(name = "DATA2")
-    var data2: String
+@Entity @Table(name = "TEST")
+@Tuplizer(impl = ProxyBasedPojoTuplizer::class)
+interface CarUpdate : IdAble {
+
+    @get:Id @get:Column(name = "ID")
+    override var id: Long
+
+    @get:Column(name = "AMOUNT")
+    var amount: Long
+
+}
+
+@Entity @Table(name = "TEST")
+@Tuplizer(impl = ProxyBasedPojoTuplizer::class)
+interface Car : CarUpdate {
+
+    @get:Id @get:Column(name = "ID")
+    override var id: Long
+
+    @get:Column(name = "MODEL")
+    var model: String
+
+    @get:Column(name = "ENGINE")
+    var engine: String
+
+    @get:Column(name = "AMOUNT")
+    override var amount: Long
 
 }
 
 @RestController
-interface SimpleController : CrudRepository<Ent, Long> {
+interface SimpleController : CrudRepository<Car, Long> {
 
-    @GetMapping("/tmp/{id}")
-    override fun findById(@PathVariable id: Long): Optional<Ent>
+    @JvmDefault
+    @GetMapping("/cars/{id}")
+    fun getCar(@PathVariable id: Long): Optional<Car> = findById(id)
 
-    @PostMapping("/tmp")
-    override fun <S : Ent?> save(@RequestBody entity: S): S
+    @JvmDefault
+    @PutMapping("/cars")
+    fun update(@RequestBody car: CarUpdate?): Car? =
+        car.takeIf { it?.isDetached ?: false }?.let { save(it) }
+            ?.let { car?.id?.let { findById(it).orElse(null) } }
+            ?: car?.id?.let { findById(it).orElse(null) }
 
+    @JvmDefault
+    @PostMapping("/cars")
+    fun saveCar(@RequestBody car: Car?): Car? = save(car)
+
+    fun save(entity: CarUpdate)
 }

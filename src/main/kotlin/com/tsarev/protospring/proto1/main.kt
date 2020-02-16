@@ -1,5 +1,6 @@
 package com.tsarev.protospring.proto1
 
+import graphql.spring.web.servlet.GraphQLEndpointConfiguration
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
@@ -16,7 +17,12 @@ fun main(vararg args: String) {
 }
 
 @EnableSwagger2
-@SpringBootApplication(exclude = [SecurityAutoConfiguration::class])
+@SpringBootApplication(
+    exclude = [
+        SecurityAutoConfiguration::class,
+        GraphQLEndpointConfiguration::class
+    ]
+)
 @EnableJpaRepositories
 open class SBConf {
 

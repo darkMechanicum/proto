@@ -38,9 +38,7 @@ class InterfaceAwareInstantiator(
 open class JacksonConfig(
     private val mapper: ObjectMapper
 ) {
-
     init {
         mapper.registerModule(SimpleModule().apply { setValueInstantiators(InterfaceAwareInstantiators) })
     }
-
 }
