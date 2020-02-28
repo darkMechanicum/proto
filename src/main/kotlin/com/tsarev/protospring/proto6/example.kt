@@ -1,5 +1,7 @@
 package com.tsarev.protospring.proto6
 
+import com.tsarev.protospring.proto6.core.SerializeAble
+
 class SomeNested : SerializeAble() {
 
     var data by long()
@@ -13,6 +15,8 @@ class Some : SerializeAble() {
     var first by long()
 
     var second by string()
+        .serialize { it.toLong() }
+        .deserialize { "$it" }
 
     var inner: SomeNested by nested(::SomeNested)
 

@@ -1,4 +1,4 @@
-package com.tsarev.protospring.proto6
+package com.tsarev.protospring.proto6.core
 
 import java.lang.RuntimeException
 import java.lang.StringBuilder
@@ -8,9 +8,7 @@ import kotlin.reflect.KProperty
 /**
  * Class with common validation logic.
  */
-open class ValidatedBase<T, Outer : ValidatedBase<T, Outer>> {
-
-    val outerThis get() = this as Outer
+open class ValidatedBase<Original, T, Self : ValidatedBase<Original, T, Self>> : TypedProvider<Original, T>(), SelfAble<Self> {
 
     val validatorChain: MutableList<(T) -> String?> = mutableListOf()
 
@@ -25,7 +23,7 @@ open class ValidatedBase<T, Outer : ValidatedBase<T, Outer>> {
      */
     fun validate(desc: String, validator: (T) -> Boolean) =
         validatorChain.add { data -> desc.takeIf { validator(data) } }
-            .let { outerThis }
+            .let { self }
 
     /**
      * Validate with generated message.
@@ -38,27 +36,30 @@ open class ValidatedBase<T, Outer : ValidatedBase<T, Outer>> {
     inner class MessageChain(private val validator: (T) -> Boolean) {
         fun withMessage(message: (T) -> String) =
             validatorChain.add { data -> if (validator(data)) null else message(data) }
-                .let { outerThis }
+                .let { self }
     }
 }
 
 /**
  * Delegate that is able to fill meta and add additional serializing logic.
  */
-class NestedSerializeDelegate<T : SerializeAble>(
-    private val properties: MutableList<NestedSerializeProp<out SerializeAble>> = mutableListOf(),
+class NestedSerializeDelegate<Original, T : SerializeAble>(
+    private val properties: MutableList<NestedSerializeProp<*, out SerializeAble>> = mutableListOf(),
     private val ctor: () -> T
-) : ValidatedBase<T, NestedSerializeDelegate<T>>() {
-    operator fun provideDelegate(thisRef: SerializeAble, prop: KProperty<*>): NestedSerializeProp<T> {
-        return NestedSerializeProp(prop.name, ctor, mergedValidator)
-            .also { properties.add(it) }
+) : ValidatedBase<Original, T, NestedSerializeDelegate<Original, T>>() {
+    operator fun provideDelegate(thisRef: SerializeAble, prop: KProperty<*>): NestedSerializeProp<Original, T> {
+        return NestedSerializeProp<Original, T>(
+            prop.name,
+            ctor,
+            mergedValidator
+        ).also { properties.add(it) }
     }
 }
 
 /**
  * Serializable class property.
  */
-class NestedSerializeProp<T : SerializeAble>(
+class NestedSerializeProp<Original, T : SerializeAble>(
     val name: String,
     val ctor: () -> T,
     val validator: (T) -> String?
@@ -76,12 +77,19 @@ class NestedSerializeProp<T : SerializeAble>(
 /**
  * Delegate that is able to fill meta and add additional serializing logic.
  */
-class PrimitiveSerializeDelegate<T>(
+class PrimitiveSerializeDelegate<Original, T>(
     private val properties: MutableList<PrimitiveSerializeProp<*>> = mutableListOf(),
     private val parser: (String) -> T
-) : ValidatedBase<T, PrimitiveSerializeDelegate<T>>() {
+) : ValidatedBase<Original, T, PrimitiveSerializeDelegate<Original, T>>() {
     operator fun provideDelegate(thisRef: SerializeAble, prop: KProperty<*>) =
-        PrimitiveSerializeProp(prop.name, parser, mergedValidator).also { properties.add(it) }
+        PrimitiveSerializeProp(
+            prop.name,
+            parser,
+            mergedValidator
+        ).also { properties.add(it) }
+
+    fun <D> serialize(block: (T) -> D): OutTransformerExpect<Original, T, D, PrimitiveSerializeDelegate<Original, D>> =
+        this.serialize(PrimitiveSerializeDelegate<Original, D>(properties, { block(parser(it)) }), block)
 }
 
 /**
@@ -107,11 +115,16 @@ class PrimitiveSerializeProp<T>(
  */
 open class SerializeAble {
     val primitives: MutableList<PrimitiveSerializeProp<*>> = mutableListOf()
-    val nested: MutableList<NestedSerializeProp<out SerializeAble>> = mutableListOf()
+    val nested: MutableList<NestedSerializeProp<*, out SerializeAble>> = mutableListOf()
 
-    fun long() = PrimitiveSerializeDelegate(primitives) { it.toLong() }
-    fun string() = PrimitiveSerializeDelegate(primitives) { it }
-    fun <T : SerializeAble> nested(ctor: () -> T) = NestedSerializeDelegate(nested, ctor)
+    fun long() = PrimitiveSerializeDelegate<Long, Long>(primitives) { it.toLong() }
+        .apply { toRoot = { it }; fromRoot = { it } }
+
+    fun string() = PrimitiveSerializeDelegate<String, String>(primitives) { it }
+        .apply { toRoot = { it }; fromRoot = { it } }
+
+    fun <T : SerializeAble> nested(ctor: () -> T) =
+        NestedSerializeDelegate<T, T>(nested, ctor).apply { toRoot = { it }; fromRoot = { it } }
 }
 
 /**
