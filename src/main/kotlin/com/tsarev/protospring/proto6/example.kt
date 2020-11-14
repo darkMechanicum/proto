@@ -21,6 +21,8 @@ class Some : SerializeAble() {
     var inner: SomeNested by nested(::SomeNested)
 
     var inner2 by nested(::Some)
+
+    // $string$delegate.getValue()
 }
 
 class Some2 : SerializeAble() {

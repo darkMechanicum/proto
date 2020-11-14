@@ -1,9 +1,11 @@
-package com.tsarev.protospring.proto1
+package com.tsarev.protospring.proto9
 
 import graphql.spring.web.servlet.GraphQLEndpointConfiguration
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+import org.springframework.cache.annotation.EnableCaching
 import org.springframework.context.annotation.Bean
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import springfox.documentation.builders.PathSelectors
@@ -13,26 +15,15 @@ import springfox.documentation.spring.web.plugins.Docket
 import springfox.documentation.swagger2.annotations.EnableSwagger2
 
 fun main(vararg args: String) {
-    SpringApplication.run(SBConf::class.java, *args)
+    SpringApplication.run(Main::class.java, *args)
 }
 
-@EnableSwagger2
 @SpringBootApplication(
     exclude = [
         SecurityAutoConfiguration::class,
-        GraphQLEndpointConfiguration::class
+        GraphQLEndpointConfiguration::class,
+        HibernateJpaAutoConfiguration::class
     ]
 )
-@EnableJpaRepositories
-open class SBConf {
-
-    @Bean
-    open fun api(): Docket {
-        return Docket(DocumentationType.SWAGGER_2)
-            .select()
-            .apis(RequestHandlerSelectors.any())
-            .paths(PathSelectors.any())
-            .build()
-    }
-
-}
+@EnableCaching
+open class Main
