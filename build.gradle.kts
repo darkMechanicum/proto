@@ -44,6 +44,8 @@ dependencies {
 configure<JavaPluginConvention> {
     sourceCompatibility = JavaVersion.VERSION_1_8
 }
+tasks.withType<JavaCompile> {
+}
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
     kotlinOptions.freeCompilerArgs += "-Xjvm-default=compatibility"
